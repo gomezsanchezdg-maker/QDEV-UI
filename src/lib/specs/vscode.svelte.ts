@@ -176,23 +176,185 @@ const MOCK_LOGS: LogEntry[] = [
   },
 ];
 
+const MOCK_STEERING_DOCS: SteeringDoc[] = [
+  { name: 'product', exists: true },
+  { name: 'tech', exists: true },
+  { name: 'structure', exists: true },
+  { name: 'branding', exists: false },
+];
+
+const MOCK_DOCS: Doc[] = [
+  {
+    filename: 'auth-system',
+    relativePath: 'auth-system',
+    isDirectory: true,
+    children: [
+      {
+        filename: 'requirements.md',
+        name: 'requirements',
+        displayName: 'Requirements',
+        relativePath: 'auth-system/requirements.md',
+        parentPath: 'auth-system',
+        isDirectory: false,
+      },
+      {
+        filename: 'design.md',
+        name: 'design',
+        displayName: 'Design',
+        relativePath: 'auth-system/design.md',
+        parentPath: 'auth-system',
+        isDirectory: false,
+      },
+      {
+        filename: 'tasks.md',
+        name: 'tasks',
+        displayName: 'Tasks',
+        relativePath: 'auth-system/tasks.md',
+        parentPath: 'auth-system',
+        isDirectory: false,
+      },
+    ],
+  },
+  {
+    filename: 'dashboard-v2',
+    relativePath: 'dashboard-v2',
+    isDirectory: true,
+    children: [
+      {
+        filename: 'requirements.md',
+        name: 'requirements',
+        displayName: 'Requirements',
+        relativePath: 'dashboard-v2/requirements.md',
+        parentPath: 'dashboard-v2',
+        isDirectory: false,
+      },
+      {
+        filename: 'design.md',
+        name: 'design',
+        displayName: 'Design',
+        relativePath: 'dashboard-v2/design.md',
+        parentPath: 'dashboard-v2',
+        isDirectory: false,
+      },
+    ],
+  },
+  {
+    filename: 'api-gateway',
+    relativePath: 'api-gateway',
+    isDirectory: true,
+    children: [
+      {
+        filename: 'requirements.md',
+        name: 'requirements',
+        displayName: 'Requirements',
+        relativePath: 'api-gateway/requirements.md',
+        parentPath: 'api-gateway',
+        isDirectory: false,
+      },
+    ],
+  },
+  {
+    filename: 'README.md',
+    name: 'README',
+    displayName: 'README',
+    relativePath: 'README.md',
+    isDirectory: false,
+  },
+];
+
+const MOCK_APPROVALS: Approval[] = [
+  {
+    id: 'apr-1',
+    title: 'Session Management — Design Document',
+    filePath: 'session-management/design.md',
+    status: 'pending',
+    type: 'document',
+    category: 'spec',
+    categoryName: 'session-management',
+    createdAt: '2026-05-17T10:00:00Z',
+    description: 'Review the JWT session management design including refresh token rotation and revocation strategy.',
+  },
+  {
+    id: 'apr-2',
+    title: 'Dashboard V2 — Design Document',
+    filePath: 'dashboard-v2/design.md',
+    status: 'pending',
+    type: 'document',
+    category: 'spec',
+    categoryName: 'dashboard-v2',
+    createdAt: '2026-05-16T14:30:00Z',
+    description: 'New dashboard layout with real-time metrics, chart components, and filter system.',
+  },
+  {
+    id: 'apr-3',
+    title: 'Rate Limiting — Requirements',
+    filePath: 'rate-limiting/requirements.md',
+    status: 'pending',
+    type: 'document',
+    category: 'spec',
+    categoryName: 'rate-limiting',
+    createdAt: '2026-05-15T09:00:00Z',
+    description: 'Requirements for the API rate limiting feature: sliding window, per-user quotas, and burst handling.',
+  },
+  {
+    id: 'apr-4',
+    title: 'Product Steering Update',
+    filePath: '.cursor/steering/product.md',
+    status: 'pending',
+    type: 'document',
+    category: 'steering',
+    categoryName: 'steering',
+    createdAt: '2026-05-14T11:00:00Z',
+    description: 'Updated product steering doc with new target audience and feature priorities.',
+  },
+  {
+    id: 'apr-5',
+    title: 'API Gateway — Requirements',
+    filePath: 'api-gateway/requirements.md',
+    status: 'needs-revision',
+    type: 'document',
+    category: 'spec',
+    categoryName: 'api-gateway',
+    createdAt: '2026-05-13T16:00:00Z',
+    respondedAt: '2026-05-14T09:00:00Z',
+    response: 'needs-revision',
+    description: 'Gateway requirements need more detail on authentication middleware chain and error handling.',
+  },
+];
+
 function createVscodeState() {
   let specs = $state<Spec[]>(MOCK_SPECS.filter(s => !s.isArchived));
   let archivedSpecsList = $state<Spec[]>(MOCK_SPECS.filter(s => s.isArchived));
-  let approvals = $state<Approval[]>([]);
+  let approvals = $state<Approval[]>(MOCK_APPROVALS);
   let tasks = $state<TaskData | null>(null);
-  let docs = $state<Doc[]>([]);
+  let docs = $state<Doc[]>(MOCK_DOCS);
   let logs = $state<LogData | null>(null);
-  let steeringDocs = $state<SteeringDoc[]>([]);
-  let approvalCategories = $state<Category[]>([]);
+  let steeringDocs = $state<SteeringDoc[]>(MOCK_STEERING_DOCS);
+  let approvalCategories = $state<Category[]>([
+    { value: 'all', label: 'All', count: MOCK_APPROVALS.filter(a => a.status === 'pending').length },
+    { value: 'steering', label: 'Steering', count: MOCK_APPROVALS.filter(a => a.category === 'steering' && a.status === 'pending').length },
+    { value: 'session-management', label: 'Session Mgmt', count: MOCK_APPROVALS.filter(a => a.categoryName === 'session-management' && a.status === 'pending').length },
+    { value: 'dashboard-v2', label: 'Dashboard V2', count: MOCK_APPROVALS.filter(a => a.categoryName === 'dashboard-v2' && a.status === 'pending').length },
+    { value: 'rate-limiting', label: 'Rate Limiting', count: MOCK_APPROVALS.filter(a => a.categoryName === 'rate-limiting' && a.status === 'pending').length },
+    { value: 'api-gateway', label: 'API Gateway', count: MOCK_APPROVALS.filter(a => a.categoryName === 'api-gateway' && a.status === 'pending').length },
+  ]);
 
   let activeTab = $state<'overview' | 'roadmap' | 'docs' | 'notifications' | 'logs'>('overview');
   let selectedSpec = $state<string>('');
   let activeRoadmapFilter = $state<'ACTIVE' | 'ARCHIVED'>('ACTIVE');
+  let selectedApprovalCategory = $state<string>('all');
+  let openFolders = $state<string[]>(['auth-system']);
+  let docsSearchResults = $state<Doc[] | null>(null);
 
   const allSpecs = $derived([...specs, ...archivedSpecsList]);
   const activeSpecs = $derived(specs.filter(s => !s.isEpic));
   const epics = $derived(allSpecs.filter(s => s.isEpic));
+
+  const filteredApprovals = $derived(
+    selectedApprovalCategory === 'all'
+      ? approvals
+      : approvals.filter(a => a.categoryName === selectedApprovalCategory || a.category === selectedApprovalCategory)
+  );
 
   function formatDate(iso: string): string {
     const d = new Date(iso);
@@ -230,6 +392,39 @@ function createVscodeState() {
     };
   }
 
+  function toggleFolder(path: string) {
+    if (openFolders.includes(path)) {
+      openFolders = openFolders.filter(p => p !== path);
+    } else {
+      openFolders = [...openFolders, path];
+    }
+  }
+
+  function setDocsSearchResults(results: Doc[] | null) {
+    docsSearchResults = results;
+  }
+
+  function setApprovalCategory(cat: string) {
+    selectedApprovalCategory = cat;
+  }
+
+  function respondApproval(id: string, response: 'approved' | 'rejected' | 'needs-revision') {
+    approvals = approvals.map(a =>
+      a.id === id
+        ? { ...a, status: response, respondedAt: new Date().toISOString(), response }
+        : a
+    );
+  }
+
+  function batchRespondApprovals(ids: string[], response: 'approved' | 'rejected' | 'needs-revision') {
+    const now = new Date().toISOString();
+    approvals = approvals.map(a =>
+      ids.includes(a.id)
+        ? { ...a, status: response, respondedAt: now, response }
+        : a
+    );
+  }
+
   return {
     get specs() { return specs; },
     get archivedSpecsList() { return archivedSpecsList; },
@@ -242,18 +437,27 @@ function createVscodeState() {
     get activeTab() { return activeTab; },
     get selectedSpec() { return selectedSpec; },
     get activeRoadmapFilter() { return activeRoadmapFilter; },
+    get selectedApprovalCategory() { return selectedApprovalCategory; },
+    get openFolders() { return openFolders; },
+    get docsSearchResults() { return docsSearchResults; },
     get allSpecs() { return allSpecs; },
     get activeSpecs() { return activeSpecs; },
     get epics() { return epics; },
+    get filteredApprovals() { return filteredApprovals; },
 
     setActiveTab(tab: typeof activeTab) { activeTab = tab; },
     setSelectedSpec(name: string) { selectedSpec = name; },
     setActiveRoadmapFilter(f: 'ACTIVE' | 'ARCHIVED') { activeRoadmapFilter = f; },
+    setApprovalCategory(cat: string) { selectedApprovalCategory = cat; },
     formatDate,
     specStatus,
     getSpecProgress,
     openSpec,
     loadLogs,
+    toggleFolder,
+    setDocsSearchResults,
+    respondApproval,
+    batchRespondApprovals,
   };
 }
 

@@ -39,7 +39,14 @@ export interface Approval {
   createdAt: string;
   respondedAt?: string;
   response?: string;
+  description?: string;
   comments?: Comment[];
+  revisionHistory?: {
+    version: number;
+    content: string;
+    timestamp: string;
+    reason?: string;
+  }[];
 }
 
 export interface Artifact {
@@ -73,19 +80,30 @@ export interface TaskData {
 }
 
 export interface Doc {
-  id: string;
-  title: string;
-  path: string;
-  type: string;
+  filename: string;
+  name?: string;
+  displayName?: string;
+  relativePath: string;
+  absolutePath?: string;
+  isDirectory: boolean;
+  isSteering?: boolean;
+  parentPath?: string;
+  children?: Doc[];
+  metadata?: {
+    displayName?: string;
+    icon?: string;
+    color?: string;
+    order?: number;
+  };
 }
 
 export interface SteeringDoc {
-  id: string;
-  title: string;
-  path: string;
+  name: string;
+  exists: boolean;
 }
 
 export interface Category {
-  id: string;
-  name: string;
+  value: string;
+  label: string;
+  count: number;
 }

@@ -2,9 +2,11 @@
   import { vscodeState } from './vscode.svelte';
   import OverviewTab from './OverviewTab.svelte';
   import RoadmapTab from './RoadmapTab.svelte';
+  import DocsTab from './DocsTab.svelte';
+  import NotificationsTab from './NotificationsTab.svelte';
   import LogsTab from './LogsTab.svelte';
 
-  type Tab = 'overview' | 'roadmap' | 'logs';
+  type Tab = 'overview' | 'roadmap' | 'docs' | 'notifications' | 'logs';
   let activeTab = $state<Tab>('overview');
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -19,11 +21,25 @@
       icon: `<polygon points="3 11 22 2 13 21 11 13 3 11"/>`,
     },
     {
+      id: 'docs',
+      label: 'Docs',
+      icon: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>`,
+    },
+    {
+      id: 'notifications',
+      label: 'Reviews',
+      icon: `<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>`,
+    },
+    {
       id: 'logs',
       label: 'Logs',
-      icon: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>`,
+      icon: `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
     },
   ];
+
+  const pendingCount = $derived(
+    vscodeState.approvals.filter(a => a.status === 'pending').length
+  );
 </script>
 
 <div class="specs-shell">
@@ -66,6 +82,9 @@
           {@html tab.icon}
         </svg>
         <span>{tab.label}</span>
+        {#if tab.id === 'notifications' && pendingCount > 0}
+          <span class="tab-badge">{pendingCount}</span>
+        {/if}
       </button>
     {/each}
   </div>
@@ -76,6 +95,10 @@
       <OverviewTab />
     {:else if activeTab === 'roadmap'}
       <RoadmapTab />
+    {:else if activeTab === 'docs'}
+      <DocsTab />
+    {:else if activeTab === 'notifications'}
+      <NotificationsTab />
     {:else if activeTab === 'logs'}
       <LogsTab />
     {/if}
@@ -164,13 +187,19 @@
     padding: 0 6px;
     gap: 2px;
     align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tab-bar::-webkit-scrollbar {
+    display: none;
   }
 
   .tab-btn {
     display: flex;
     align-items: center;
     gap: 5px;
-    padding: 0 10px;
+    padding: 0 8px;
     height: 100%;
     border: none;
     background: none;
@@ -183,6 +212,8 @@
     transition: color 0.15s;
     position: relative;
     top: 1px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .tab-btn:hover:not(.tab-active) {
@@ -192,6 +223,19 @@
   .tab-btn.tab-active {
     color: #e0e0e0;
     border-bottom-color: #4d9eff;
+  }
+
+  .tab-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    background: #f85149;
+    color: #fff;
+    padding: 0 4px;
+    border-radius: 6px;
+    line-height: 1.5;
+    min-width: 14px;
+    text-align: center;
   }
 
   /* Content */
