@@ -6,6 +6,7 @@
   let selectedApprovals = $state(new Set<string>());
   let processingApproval = $state<string | null>(null);
   let batchProcessing = $state(false);
+  let hoveredCard = $state<string | null>(null);
 
   const pendingApprovals = $derived(
     vscodeState.filteredApprovals.filter(a => a.status === 'pending' || a.status === 'needs-revision')
@@ -17,18 +18,13 @@
 
   function toggleSelectionMode() {
     selectionMode = !selectionMode;
-    if (!selectionMode) {
-      selectedApprovals = new Set();
-    }
+    if (!selectionMode) selectedApprovals = new Set();
   }
 
   function toggleSelect(id: string) {
     const next = new Set(selectedApprovals);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     selectedApprovals = next;
   }
 
@@ -46,7 +42,6 @@
 
   async function handleApprove(id: string) {
     processingApproval = id;
-    // Simulate async
     await new Promise(r => setTimeout(r, 400));
     vscodeState.respondApproval(id, 'approved');
     processingApproval = null;
@@ -87,6 +82,12 @@
     if (status === 'approved') return 'APPROVED';
     if (status === 'rejected') return 'REJECTED';
     return 'PENDING';
+  }
+
+  function cardBorderClass(status: Approval['status']): string {
+    if (status === 'pending') return 'border-pending';
+    if (status === 'needs-revision') return 'border-revision';
+    return 'border-default';
   }
 </script>
 
@@ -147,11 +148,18 @@
       </div>
     {:else}
       <div class="approvals-list">
-        {#each pendingApprovals as approval (approval.id)}
+        {#each pendingApprovals as approval, i (approval.id)}
           {@const isSelected = selectedApprovals.has(approval.id)}
           {@const isProcessing = processingApproval === approval.id}
-          <div class="approval-card {isSelected ? 'card-selected' : ''}">
-            <div class="card-border {isSelected ? 'border-selected' : ''}"></div>
+          {@const isHovered = hoveredCard === approval.id}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="approval-card {isSelected ? 'card-selected' : ''} {isHovered ? 'card-hovered' : ''}"
+            style="animation-delay: {i * 30}ms"
+            onmouseenter={() => hoveredCard = approval.id}
+            onmouseleave={() => hoveredCard = null}
+          >
+            <div class="card-accent {cardBorderClass(approval.status)} {isSelected ? 'accent-selected' : ''}"></div>
             <div class="card-content">
               <!-- Selection checkbox -->
               {#if selectionMode}
@@ -184,6 +192,12 @@
                   <polyline points="8 6 2 12 8 18"/>
                 </svg>
                 <span>{approval.filePath}</span>
+              </div>
+
+              <!-- Meta row -->
+              <div class="card-meta">
+                <span class="meta-category">{approval.categoryName}</span>
+                <span class="meta-date">{vscodeState.formatDate(approval.createdAt)}</span>
               </div>
 
               <!-- Actions -->
@@ -314,9 +328,7 @@
     scrollbar-width: none;
   }
 
-  .category-bar::-webkit-scrollbar {
-    display: none;
-  }
+  .category-bar::-webkit-scrollbar { display: none; }
 
   .category-pill {
     display: flex;
@@ -357,9 +369,7 @@
     line-height: 1.4;
   }
 
-  .pill-active .pill-count {
-    background: rgba(77, 158, 255, 0.3);
-  }
+  .pill-active .pill-count { background: rgba(77, 158, 255, 0.3); }
 
   /* Toolbar */
   .toolbar {
@@ -372,22 +382,8 @@
     min-height: 32px;
   }
 
-  .toolbar-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-  }
-
-  .toolbar-center {
-    flex-shrink: 0;
-  }
-
-  .toolbar-right {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-  }
+  .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .toolbar-right { justify-content: flex-end; }
 
   .checkbox-btn {
     background: none;
@@ -415,17 +411,8 @@
     color: #fff;
   }
 
-  .selected-count {
-    font-size: 11px;
-    color: #4d9eff;
-    font-weight: 500;
-  }
-
-  .pending-label {
-    font-size: 11px;
-    color: #555;
-    font-weight: 500;
-  }
+  .selected-count { font-size: 11px; color: #4d9eff; font-weight: 500; }
+  .pending-label { font-size: 11px; color: #555; font-weight: 500; }
 
   .mode-btn {
     background: none;
@@ -440,9 +427,7 @@
     transition: color 0.12s;
   }
 
-  .mode-btn:hover {
-    color: #d0d0d0;
-  }
+  .mode-btn:hover { color: #d0d0d0; }
 
   /* Approvals scroll */
   .approvals-scroll {
@@ -467,12 +452,7 @@
     margin-top: 8px;
   }
 
-  .empty-state p {
-    font-size: 12px;
-    color: #555;
-    font-style: italic;
-    margin: 0;
-  }
+  .empty-state p { font-size: 12px; color: #555; font-style: italic; margin: 0; }
 
   /* Approval cards */
   .approvals-list {
@@ -487,11 +467,22 @@
     border: 1px solid #2e2e2e;
     border-radius: 8px;
     overflow: hidden;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
+    animation: cardIn 0.25s ease-out both;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .approval-card:hover {
     border-color: #3a3a3a;
+  }
+
+  .card-hovered {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
 
   .card-selected {
@@ -499,16 +490,16 @@
     border-color: rgba(77, 158, 255, 0.2);
   }
 
-  .card-border {
+  .card-accent {
     width: 4px;
     flex-shrink: 0;
-    background: rgba(77, 158, 255, 0.4);
-    transition: background 0.15s;
+    transition: background 0.2s;
   }
 
-  .border-selected {
-    background: #4d9eff;
-  }
+  .border-pending { background: rgba(77, 158, 255, 0.4); }
+  .border-revision { background: rgba(210, 153, 34, 0.5); }
+  .border-default { background: rgba(77, 158, 255, 0.2); }
+  .accent-selected { background: #4d9eff; }
 
   .card-content {
     flex: 1;
@@ -602,10 +593,26 @@
     word-break: break-all;
   }
 
-  .file-path svg {
-    flex-shrink: 0;
-    margin-top: 1px;
+  .file-path svg { flex-shrink: 0; margin-top: 1px; color: #555; }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+
+  .meta-category {
+    font-size: 10px;
     color: #555;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+
+  .meta-date {
+    font-size: 10px;
+    color: #444;
+    font-family: 'JetBrains Mono', monospace;
   }
 
   /* Action buttons */
@@ -625,15 +632,13 @@
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all 0.15s;
     border: 1px solid transparent;
     min-height: 28px;
   }
 
-  .action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn:active:not(:disabled) { transform: scale(0.97); }
 
   .btn-approve {
     background: rgba(63, 185, 80, 0.15);
@@ -641,9 +646,7 @@
     color: #3fb950;
   }
 
-  .btn-approve:hover:not(:disabled) {
-    background: rgba(63, 185, 80, 0.25);
-  }
+  .btn-approve:hover:not(:disabled) { background: rgba(63, 185, 80, 0.25); }
 
   .btn-revise {
     background: transparent;
@@ -651,9 +654,7 @@
     color: #d29922;
   }
 
-  .btn-revise:hover:not(:disabled) {
-    background: rgba(210, 153, 34, 0.1);
-  }
+  .btn-revise:hover:not(:disabled) { background: rgba(210, 153, 34, 0.1); }
 
   .btn-reject {
     background: transparent;
@@ -661,9 +662,7 @@
     color: #f85149;
   }
 
-  .btn-reject:hover:not(:disabled) {
-    background: rgba(248, 81, 73, 0.1);
-  }
+  .btn-reject:hover:not(:disabled) { background: rgba(248, 81, 73, 0.1); }
 
   .btn-open {
     background: transparent;
@@ -672,10 +671,7 @@
     padding: 4px 6px;
   }
 
-  .btn-open:hover:not(:disabled) {
-    background: #2a2a2a;
-    color: #a0a0a0;
-  }
+  .btn-open:hover:not(:disabled) { background: #2a2a2a; color: #a0a0a0; }
 
   /* Batch footer */
   .batch-footer {
@@ -683,6 +679,12 @@
     background: #252525;
     padding: 10px 14px;
     flex-shrink: 0;
+    animation: slideUp 0.2s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .batch-header {
@@ -692,11 +694,7 @@
     margin-bottom: 8px;
   }
 
-  .batch-count {
-    font-size: 11px;
-    font-weight: 600;
-    color: #d0d0d0;
-  }
+  .batch-count { font-size: 11px; font-weight: 600; color: #d0d0d0; }
 
   .batch-clear {
     background: none;
@@ -707,14 +705,9 @@
     transition: color 0.12s;
   }
 
-  .batch-clear:hover {
-    color: #a0a0a0;
-  }
+  .batch-clear:hover { color: #a0a0a0; }
 
-  .batch-actions {
-    display: flex;
-    gap: 6px;
-  }
+  .batch-actions { display: flex; gap: 6px; }
 
   .batch-btn {
     flex: 1;
@@ -727,14 +720,12 @@
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all 0.15s;
     border: 1px solid transparent;
   }
 
-  .batch-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  .batch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .batch-btn:active:not(:disabled) { transform: scale(0.97); }
 
   .batch-approve {
     background: rgba(63, 185, 80, 0.15);
@@ -742,9 +733,7 @@
     color: #3fb950;
   }
 
-  .batch-approve:hover:not(:disabled) {
-    background: rgba(63, 185, 80, 0.25);
-  }
+  .batch-approve:hover:not(:disabled) { background: rgba(63, 185, 80, 0.25); }
 
   .batch-revise {
     background: transparent;
@@ -752,9 +741,7 @@
     color: #d29922;
   }
 
-  .batch-revise:hover:not(:disabled) {
-    background: rgba(210, 153, 34, 0.1);
-  }
+  .batch-revise:hover:not(:disabled) { background: rgba(210, 153, 34, 0.1); }
 
   .batch-reject {
     background: transparent;
@@ -762,7 +749,5 @@
     color: #f85149;
   }
 
-  .batch-reject:hover:not(:disabled) {
-    background: rgba(248, 81, 73, 0.1);
-  }
+  .batch-reject:hover:not(:disabled) { background: rgba(248, 81, 73, 0.1); }
 </style>
